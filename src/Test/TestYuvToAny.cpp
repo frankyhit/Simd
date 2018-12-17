@@ -44,10 +44,27 @@ namespace Test
                 TEST_PERFORMANCE_TEST(description);
                 func(y.data, y.stride, u.data, u.stride, v.data, v.stride, y.width, y.height, dst.data, dst.stride);
             }
-        };
+		}; 
+		struct FuncNV
+		{
+			typedef void(*FuncPtr)(const uint8_t * y, size_t yStride, const uint8_t * uv, size_t uvStride,
+			size_t width, size_t height, uint8_t * dst, size_t dstStride);
+
+			FuncPtr func;
+			String description;
+
+			FuncNV(const FuncPtr & f, const String & d) : func(f), description(d) {}
+
+			void Call(const View & y, const View & uv, View & dst) const
+			{
+				TEST_PERFORMANCE_TEST(description);
+				func(y.data, y.stride, uv.data, uv.stride, y.width, y.height, dst.data, dst.stride);
+			}
+		};
     }
 
 #define FUNC(function) Func(function, #function)
+#define FUNC_NV(function) FuncNV(function, #function)
 
     bool YuvToAnyAutoTest(int width, int height, int dx, int dy, View::Format dstType, const Func & f1, const Func & f2, int maxDifference)
     {
@@ -75,15 +92,49 @@ namespace Test
         result = result && Compare(dst1, dst2, maxDifference, true, 64, 255);
 
         return result;
-    }
+	}
+	bool YuvToAnyAutoTest(int dx, int dy, View::Format dstType, const Func & f1, const Func & f2, int maxDifference = 0)
+	{
+		bool result = true;
 
-    bool YuvToAnyAutoTest(int dx, int dy, View::Format dstType, const Func & f1, const Func & f2, int maxDifference = 0)
+		result = result && YuvToAnyAutoTest(W, H, dx, dy, dstType, f1, f2, maxDifference);
+		result = result && YuvToAnyAutoTest(W + O*dx, H - O*dy, dx, dy, dstType, f1, f2, maxDifference);
+		result = result && YuvToAnyAutoTest(W - O*dx, H + O*dy, dx, dy, dstType, f1, f2, maxDifference);
+
+		return result;
+	}
+	bool YuvNVToAnyAutoTest(int width, int height, int dx, int dy, View::Format dstType, const FuncNV & f1, const FuncNV & f2, int maxDifference)
+	{
+		bool result = true;
+
+		TEST_LOG_SS(Info, "Test " << f1.description << " & " << f2.description << " [" << width << ", " << height << "].");
+
+		const int uvWidth = width;
+		const int uvHeight = height / dy;
+
+		View y(width, height, View::Gray8, NULL, TEST_ALIGN(width));
+		FillRandom(y);
+		View uv(uvWidth, uvHeight, View::Gray8, NULL, TEST_ALIGN(uvWidth));
+		FillRandom(uv);
+
+		View dst1(width, height, dstType, NULL, TEST_ALIGN(width));
+		View dst2(width, height, dstType, NULL, TEST_ALIGN(width));
+
+		TEST_EXECUTE_AT_LEAST_MIN_TIME(f1.Call(y, uv, dst1));
+
+		TEST_EXECUTE_AT_LEAST_MIN_TIME(f2.Call(y, uv, dst2));
+
+		result = result && Compare(dst1, dst2, maxDifference, true, 64, 255);
+
+		return result;
+	}
+	bool YuvNVToAnyAutoTest(int dx, int dy, View::Format dstType, const FuncNV & f1, const FuncNV & f2, int maxDifference = 0)
     {
         bool result = true;
 
-        result = result && YuvToAnyAutoTest(W, H, dx, dy, dstType, f1, f2, maxDifference);
-        result = result && YuvToAnyAutoTest(W + O*dx, H - O*dy, dx, dy, dstType, f1, f2, maxDifference);
-        result = result && YuvToAnyAutoTest(W - O*dx, H + O*dy, dx, dy, dstType, f1, f2, maxDifference);
+		result = result && YuvNVToAnyAutoTest(W, H, dx, dy, dstType, f1, f2, maxDifference);
+		result = result && YuvNVToAnyAutoTest(W + O*dx, H - O*dy, dx, dy, dstType, f1, f2, maxDifference);
+		result = result && YuvNVToAnyAutoTest(W - O*dx, H + O*dy, dx, dy, dstType, f1, f2, maxDifference);
 
         return result;
     }
@@ -189,6 +240,33 @@ namespace Test
 
         return result;
     }
+
+	bool Yuv420pNV12ToBgrAutoTest()
+	{
+		bool result = true;
+
+		result = result && YuvNVToAnyAutoTest(2, 2, View::Bgr24, FUNC_NV(Simd::Base::Yuv420pNV12ToBgr), FUNC_NV(SimdYuv420pNV12ToBgr));
+
+#ifdef SIMD_NEON_ENABLE
+		if (Simd::Neon::Enable)
+			result = result && YuvNVToAnyAutoTest(2, 2, View::Bgr24, FUNC_NV(Simd::Neon::Yuv420pNV12ToBgr), FUNC_NV(SimdYuv420pNV12ToBgr));
+#endif
+
+		return result;
+	}
+	bool Yuv420pNV21ToBgrAutoTest()
+	{
+		bool result = true;
+
+		result = result && YuvNVToAnyAutoTest(2, 2, View::Bgr24, FUNC_NV(Simd::Base::Yuv420pNV21ToBgr), FUNC_NV(SimdYuv420pNV21ToBgr));
+
+#ifdef SIMD_NEON_ENABLE
+		if (Simd::Neon::Enable)
+			result = result && YuvNVToAnyAutoTest(2, 2, View::Bgr24, FUNC_NV(Simd::Neon::Yuv420pNV21ToBgr), FUNC_NV(SimdYuv420pNV21ToBgr));
+#endif
+
+		return result;
+	}
 
     bool Yuv444pToHslAutoTest()
     {

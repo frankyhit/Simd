@@ -33,6 +33,7 @@ namespace Simd
             YuvToBgr(y[1], u, v, bgr + 3);
         }
 
+		//YUV420 planar I420, Y_U_V
         void Yuv420pToBgr(const uint8_t * y, size_t yStride, const uint8_t * u, size_t uStride, const uint8_t * v, size_t vStride,
             size_t width, size_t height, uint8_t * bgr, size_t bgrStride)
         {
@@ -53,7 +54,46 @@ namespace Simd
                 bgr += 2 * bgrStride;
             }
         }
+		//YUV420 planar NV12, Y_UV
+		void Yuv420pNV12ToBgr(const uint8_t * y, size_t yStride, const uint8_t * uv, size_t uvStride,
+			size_t width, size_t height, uint8_t * bgr, size_t bgrStride)
+		{
+			assert((width % 2 == 0) && (height % 2 == 0) && (width >= 2) && (height >= 2));
 
+			for (size_t row = 0; row < height; row += 2)
+			{
+				for (size_t colUV = 0, colY = 0, colBgr = 0; colY < width; colY += 2, colUV += 2, colBgr += 6)
+				{
+					int u_ = uv[colUV];
+					int v_ = uv[colUV+1];
+					Yuv422pToBgr(y + colY, u_, v_, bgr + colBgr);
+					Yuv422pToBgr(y + yStride + colY, u_, v_, bgr + bgrStride + colBgr);
+				}
+				y += 2 * yStride;
+				uv += uvStride;
+				bgr += 2 * bgrStride;
+			}
+		}
+		//YUV420 planar NV21, Y_VU
+		void Yuv420pNV21ToBgr(const uint8_t * y, size_t yStride, const uint8_t * vu, size_t vuStride,
+			size_t width, size_t height, uint8_t * bgr, size_t bgrStride)
+		{
+			assert((width % 2 == 0) && (height % 2 == 0) && (width >= 2) && (height >= 2));
+
+			for (size_t row = 0; row < height; row += 2)
+			{
+				for (size_t colUV = 0, colY = 0, colBgr = 0; colY < width; colY += 2, colUV += 2, colBgr += 6)
+				{
+					int v_ = vu[colUV];
+					int u_ = vu[colUV + 1];
+					Yuv422pToBgr(y + colY, u_, v_, bgr + colBgr);
+					Yuv422pToBgr(y + yStride + colY, u_, v_, bgr + bgrStride + colBgr);
+				}
+				y += 2 * yStride;
+				vu += vuStride;
+				bgr += 2 * bgrStride;
+			}
+		}
         void Yuv422pToBgr(const uint8_t * y, size_t yStride, const uint8_t * u, size_t uStride, const uint8_t * v, size_t vStride,
             size_t width, size_t height, uint8_t * bgr, size_t bgrStride)
         {

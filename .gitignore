@@ -1,0 +1,7 @@
+bin
+obj
+prj/txt/FullVersion.txt
+*.opensdf
+*.sdf
+*.suo
+src/Simd/SimdVersion.h

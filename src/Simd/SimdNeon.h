@@ -436,6 +436,10 @@ namespace Simd
 
         void Yuv420pToBgr(const uint8_t * y, size_t yStride, const uint8_t * u, size_t uStride, const uint8_t * v, size_t vStride,
             size_t width, size_t height, uint8_t * bgr, size_t bgrStride);
+		void Yuv420pNV12ToBgr(const uint8_t * y, size_t yStride, const uint8_t * uv, size_t uvStride,
+			size_t width, size_t height, uint8_t * bgr, size_t bgrStride);
+		void Yuv420pNV21ToBgr(const uint8_t * y, size_t yStride, const uint8_t * vu, size_t vuStride,
+			size_t width, size_t height, uint8_t * bgr, size_t bgrStride);
 
         void Yuv422pToBgr(const uint8_t * y, size_t yStride, const uint8_t * u, size_t uStride, const uint8_t * v, size_t vStride,
             size_t width, size_t height, uint8_t * bgr, size_t bgrStride);

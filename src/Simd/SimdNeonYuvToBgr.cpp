@@ -86,7 +86,94 @@ namespace Simd
                 bgr += 2 * bgrStride;
             }
         }
+		template <bool align> void Yuv420pNV12ToBgr(const uint8_t * y, size_t yStride, const uint8_t * uv, size_t uvStride, 
+			size_t width, size_t height, uint8_t * bgr, size_t bgrStride)
+		{
+			assert((width % 2 == 0) && (height % 2 == 0) && (width >= DA) && (height >= 2));
+			if (align)
+			{
+				assert(Aligned(y) && Aligned(yStride) && Aligned(uv) && Aligned(uvStride));
+				assert(Aligned(bgr) && Aligned(bgrStride));
+			}
 
+			size_t bodyWidth = AlignLo(width, DA);
+			size_t tail = width - bodyWidth;
+			uint8x16x2_t _u, _v, _uv;
+			uint8x16_t _tmp;
+			for (size_t row = 0; row < height; row += 2)
+			{
+				for (size_t colUV = 0, colY = 0, colBgr = 0; colY < bodyWidth; colY += DA, colUV += DA, colBgr += A6)
+				{
+					_uv = Load2<align>(uv + colUV);
+					_u = vtrnq_u8(_uv.val[0], _uv.val[0]);
+					_v = vtrnq_u8(_uv.val[1], _uv.val[1]);
+					_tmp = _u.val[1];
+					_u.val[1] = _v.val[0];
+					_v.val[0] = _tmp;
+					Yuv422pToBgr<align>(y + colY, _u, _v, bgr + colBgr);
+					Yuv422pToBgr<align>(y + colY + yStride, _u, _v, bgr + colBgr + bgrStride);
+				}
+				if (tail)
+				{
+					size_t offset = width - DA;
+					_uv = Load2<false>(uv + offset);
+					_u = vtrnq_u8(_uv.val[0], _uv.val[0]);
+					_v = vtrnq_u8(_uv.val[1], _uv.val[1]);
+					_tmp = _u.val[1];
+					_u.val[1] = _v.val[0];
+					_v.val[0] = _tmp;
+					Yuv422pToBgr<false>(y + offset, _u, _v, bgr + 3 * offset);
+					Yuv422pToBgr<false>(y + offset + yStride, _u, _v, bgr + 3 * offset + bgrStride);
+				}
+				y += 2 * yStride;
+				uv += uvStride;
+				bgr += 2 * bgrStride;
+			}
+		}
+		template <bool align> void Yuv420pNV21ToBgr(const uint8_t * y, size_t yStride, const uint8_t * vu, size_t vuStride,
+			size_t width, size_t height, uint8_t * bgr, size_t bgrStride)
+		{
+			assert((width % 2 == 0) && (height % 2 == 0) && (width >= DA) && (height >= 2));
+			if (align)
+			{
+				assert(Aligned(y) && Aligned(yStride) && Aligned(vu) && Aligned(vuStride));
+				assert(Aligned(bgr) && Aligned(bgrStride));
+			}
+
+			size_t bodyWidth = AlignLo(width, DA);
+			size_t tail = width - bodyWidth;
+			uint8x16x2_t _u, _v, _vu;
+			uint8x16_t _tmp;
+			for (size_t row = 0; row < height; row += 2)
+			{
+				for (size_t colUV = 0, colY = 0, colBgr = 0; colY < bodyWidth; colY += DA, colUV += DA, colBgr += A6)
+				{
+					_vu = Load2<align>(vu + colUV);
+					_u = vtrnq_u8(_vu.val[0], _vu.val[0]);
+					_v = vtrnq_u8(_vu.val[1], _vu.val[1]);
+					_tmp = _u.val[1];
+					_u.val[1] = _v.val[0];
+					_v.val[0] = _tmp;
+					Yuv422pToBgr<align>(y + colY, _v, _u, bgr + colBgr);
+					Yuv422pToBgr<align>(y + colY + yStride, _v, _u, bgr + colBgr + bgrStride);
+				}
+				if (tail)
+				{
+					size_t offset = width - DA;
+					_vu = Load2<false>(vu + offset);
+					_u = vtrnq_u8(_vu.val[0], _vu.val[0]);
+					_v = vtrnq_u8(_vu.val[1], _vu.val[1]);
+					_tmp = _u.val[1];
+					_u.val[1] = _v.val[0];
+					_v.val[0] = _tmp;
+					Yuv422pToBgr<false>(y + offset, _v, _u, bgr + 3 * offset);
+					Yuv422pToBgr<false>(y + offset + yStride, _v, _u, bgr + 3 * offset + bgrStride);
+				}
+				y += 2 * yStride;
+				uv += uvStride;
+				bgr += 2 * bgrStride;
+			}
+		}
         void Yuv420pToBgr(const uint8_t * y, size_t yStride, const uint8_t * u, size_t uStride, const uint8_t * v, size_t vStride,
             size_t width, size_t height, uint8_t * bgr, size_t bgrStride)
         {

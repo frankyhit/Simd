@@ -48,7 +48,7 @@
 #if defined(_M_X64) || defined(_M_AMD64)
 #define SIMD_X64_ENABLE
 #endif
-
+//#define SIMD_ARM_ENABLE
 #if defined(_M_ARM)
 #define SIMD_ARM_ENABLE
 #endif
